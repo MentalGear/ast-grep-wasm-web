@@ -25,7 +25,14 @@
   ],
   "exports": {
     ".": "./dist/web/index.js",
-    "./node": "./dist/node/index.js",
+    "./node": {
+      "require": "./dist/node/index.cjs",
+      "types": "./dist/node/index.d.ts"
+    },
+    "./node-fs": {
+      "import": "./dist/node-fs/index.js",
+      "types": "./dist/node-fs/index.d.ts"
+    },
     "./bundler": "./dist/bundler/index.js",
     "./*": [
       "./*",
@@ -47,6 +54,7 @@
     "dist"
   ],
   "dependencies": {
+    "web-tree-sitter": "^0.22.6",
     "web-tree-sitter-sg": "0.22.2"
   }
 }

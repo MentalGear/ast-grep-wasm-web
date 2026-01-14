@@ -1,0 +1,17 @@
+{
+  "name": "playground-node",
+  "type": "module",
+  "version": "0.3.0",
+  "private": true,
+  "bin": {
+    "ag-wasm-cli": "./cli.js"
+  },
+  "scripts": {
+    "cli": "node cli.js",
+    "demo": "node demo.js",
+    "scan": "node scan-directory.js"
+  },
+  "dependencies": {
+    "ag-wasm": "workspace:*"
+  }
+}

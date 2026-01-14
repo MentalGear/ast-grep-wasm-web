@@ -1,6 +1,7 @@
 packages:
   - packages/ag-wasm
   - playground
+  - playground-node
 
 onlyBuiltDependencies:
   - esbuild
