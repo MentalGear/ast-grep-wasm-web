@@ -33,6 +33,7 @@ try {
 const LINT_RULES = [
   {
     id: "no-var",
+    language: "typescript",
     rule: { pattern: "var $NAME = $VALUE" },
     message: "Use 'const' or 'let' instead of 'var'",
     severity: "error",
@@ -40,12 +41,14 @@ const LINT_RULES = [
   },
   {
     id: "no-console-log",
+    language: "typescript",
     rule: { pattern: "console.log($$$ARGS)" },
     message: "Remove console.log statements in production",
     severity: "warning",
   },
   {
     id: "no-debugger",
+    language: "typescript",
     rule: { pattern: "debugger" },
     message: "Remove debugger statements",
     severity: "error",
@@ -53,6 +56,7 @@ const LINT_RULES = [
   },
   {
     id: "no-any",
+    language: "typescript",
     rule: { pattern: ": any" },
     message: "Avoid using 'any' type, use specific types instead",
     severity: "warning",
@@ -66,26 +70,31 @@ const LINT_RULES = [
 const SEARCH_PATTERNS = [
   {
     id: "find-functions",
+    language: "typescript",
     rule: { pattern: "function $NAME($$$PARAMS) { $$$BODY }" },
     description: "Find all function declarations",
   },
   {
     id: "find-arrow-functions",
+    language: "typescript",
     rule: { pattern: "const $NAME = ($$$PARAMS) => $BODY" },
     description: "Find all arrow functions assigned to const",
   },
   {
     id: "find-classes",
+    language: "typescript",
     rule: { pattern: "class $NAME { $$$BODY }" },
     description: "Find all class declarations",
   },
   {
     id: "find-async-functions",
+    language: "typescript",
     rule: { pattern: "async function $NAME($$$PARAMS) { $$$BODY }" },
     description: "Find all async functions",
   },
   {
     id: "find-exports",
+    language: "typescript",
     rule: { pattern: "export { $$$EXPORTS }" },
     description: "Find all export statements",
   },
@@ -98,18 +107,21 @@ const SEARCH_PATTERNS = [
 const REPLACE_RULES = [
   {
     id: "var-to-const",
+    language: "typescript",
     rule: { pattern: "var $NAME = $VALUE" },
     fix: "const $NAME = $VALUE",
     description: "Convert var to const",
   },
   {
     id: "console-to-logger",
+    language: "typescript",
     rule: { pattern: 'console.log($$$ARGS)' },
     fix: "logger.debug($$$ARGS)",
     description: "Replace console.log with logger.debug",
   },
   {
     id: "remove-debugger",
+    language: "typescript",
     rule: { pattern: "debugger" },
     fix: "// debugger removed",
     description: "Comment out debugger statements",
