@@ -1,7 +1,7 @@
+import { execSync } from "node:child_process"
+import { readFile, rm, writeFile } from "node:fs/promises"
 import { resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { execSync } from "node:child_process"
-import { readFile, writeFile, rm } from "node:fs/promises"
 import fg from "fast-glob"
 import { copy, ensureDir, pathExists } from "fs-extra"
 import { rimraf } from "rimraf"
@@ -161,6 +161,50 @@ module.exports = require("../node/index.js");
 `
     await writeFile(outPath, fallbackContent)
     console.log("Created fallback node-fs module")
+  }
+
+  // Build CLI
+  console.log("\n📦 Building CLI...\n")
+
+  const cliDir = resolve(distPath, "cli")
+  await ensureDir(cliDir)
+
+  const cliSrcPath = resolve(pkgPath, "src/cli.ts")
+  const cliOutPath = resolve(cliDir, "cli.js")
+
+  try {
+    // Build CLI - don't bundle WASM module, it's loaded at runtime via createRequire
+    execSync(
+      `npx esbuild "${cliSrcPath}" --outfile="${cliOutPath}" --format=esm --platform=node --target=node18 --bundle --external:yaml --external:node:module --external:node:path --external:node:fs/promises --external:node:url`,
+      { stdio: "inherit", cwd: resolve(_dirname, "..") },
+    )
+
+    // Add shebang to CLI
+    let cliContent = await readFile(cliOutPath, "utf-8")
+    if (!cliContent.startsWith("#!/usr/bin/env node")) {
+      cliContent = `#!/usr/bin/env node\n${cliContent}`
+      await writeFile(cliOutPath, cliContent)
+    }
+
+    // Make CLI executable
+    execSync(`chmod +x "${cliOutPath}"`, { stdio: "inherit" })
+
+    console.log("✅ CLI built successfully")
+  } catch (err) {
+    console.error("⚠️ Failed to build CLI:", err)
+  }
+
+  // Copy parsers from playground-node to dist
+  console.log("\n📦 Copying parsers...\n")
+
+  const parsersDir = resolve(pkgPath, "dist/parsers")
+  const srcParsersDir = resolve(_dirname, "../playground-node/parsers")
+
+  if (await pathExists(srcParsersDir)) {
+    await copy(srcParsersDir, parsersDir)
+    console.log("✅ Parsers copied successfully")
+  } else {
+    console.log("⚠️ No parsers found in playground-node/parsers")
   }
 
   console.log("\n📦 Finish Building...\n")
