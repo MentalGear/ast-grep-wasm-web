@@ -41,11 +41,50 @@ async function build() {
   const nodeJs = resolve(nodeDir, "index.js")
   const nodeCjs = resolve(nodeDir, "index.cjs")
   if (await pathExists(nodeJs)) {
-    const content = await readFile(nodeJs, "utf-8")
+    let content = await readFile(nodeJs, "utf-8")
+    // Patch to use web-tree-sitter shim for proper module compatibility
+    content = content.replace(
+      "require(`web-tree-sitter`)",
+      "require('./../web-tree-sitter-shim.cjs')",
+    )
     await writeFile(nodeCjs, content)
     await rm(nodeJs)
-    console.log("Renamed node/index.js to node/index.cjs")
+    console.log("Renamed node/index.js to node/index.cjs (with shim patch)")
   }
+
+  // Create web-tree-sitter shim for Node.js compatibility
+  const shimContent = `// Shim to make web-tree-sitter compatible with wasm-bindgen generated code
+// web-tree-sitter exports Parser directly, Language is available after init()
+
+const Parser = require('web-tree-sitter');
+
+// Create a proxy for Language that will be populated after Parser.init()
+let _Language = null;
+
+const LanguageProxy = new Proxy({}, {
+  get(target, prop) {
+    if (!_Language) {
+      throw new Error('Parser.init() must be called before using Language');
+    }
+    return _Language[prop];
+  }
+});
+
+// Wrap Parser.init to capture Language reference
+const originalInit = Parser.init.bind(Parser);
+Parser.init = async function(...args) {
+  const result = await originalInit(...args);
+  _Language = Parser.Language;
+  return result;
+};
+
+module.exports = {
+  Parser,
+  Language: LanguageProxy
+};
+`
+  await writeFile(resolve(distPath, "web-tree-sitter-shim.cjs"), shimContent)
+  console.log("Created web-tree-sitter-shim.cjs")
 
   // Build node-fs module
   console.log("\n📦 Building node-fs module...\n")

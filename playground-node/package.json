@@ -7,11 +7,13 @@
     "ag-wasm-cli": "./cli.js"
   },
   "scripts": {
+    "playground": "node playground.js",
     "cli": "node cli.js",
     "demo": "node demo.js",
     "scan": "node scan-directory.js"
   },
   "dependencies": {
-    "ag-wasm": "workspace:*"
+    "ag-wasm": "workspace:*",
+    "web-tree-sitter": "^0.22.6"
   }
 }
