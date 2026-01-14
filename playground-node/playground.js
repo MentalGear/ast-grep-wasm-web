@@ -11,7 +11,7 @@
 
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { readFile, writeFile } from "node:fs/promises"
+import { readFile } from "node:fs/promises"
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const PARSER_DIR = process.env.PARSER_DIR || join(__dirname, "parsers")
@@ -27,7 +27,7 @@ try {
 }
 
 // ============================================================================
-// LINTING RULES
+// LINTING RULES (with marker fixes to detect matches)
 // ============================================================================
 
 const LINT_RULES = [
@@ -37,7 +37,7 @@ const LINT_RULES = [
     rule: { pattern: "var $NAME = $VALUE" },
     message: "Use 'const' or 'let' instead of 'var'",
     severity: "error",
-    fix: "const $NAME = $VALUE",
+    fix: "/*LINT:no-var*/var $NAME = $VALUE",
   },
   {
     id: "no-console-log",
@@ -45,6 +45,7 @@ const LINT_RULES = [
     rule: { pattern: "console.log($$$ARGS)" },
     message: "Remove console.log statements in production",
     severity: "warning",
+    fix: "/*LINT:no-console-log*/console.log($$$ARGS)",
   },
   {
     id: "no-debugger",
@@ -52,19 +53,20 @@ const LINT_RULES = [
     rule: { pattern: "debugger" },
     message: "Remove debugger statements",
     severity: "error",
-    fix: "",
+    fix: "/*LINT:no-debugger*/debugger",
   },
   {
-    id: "no-any",
+    id: "no-any-param",
     language: "typescript",
-    rule: { pattern: ": any" },
-    message: "Avoid using 'any' type, use specific types instead",
+    rule: { pattern: "($NAME: any)" },
+    message: "Avoid using 'any' type in parameters",
     severity: "warning",
+    fix: "/*LINT:no-any*/($NAME: any)",
   },
 ]
 
 // ============================================================================
-// SEARCH PATTERNS
+// SEARCH PATTERNS (with marker fixes to detect matches)
 // ============================================================================
 
 const SEARCH_PATTERNS = [
@@ -73,30 +75,35 @@ const SEARCH_PATTERNS = [
     language: "typescript",
     rule: { pattern: "function $NAME($$$PARAMS) { $$$BODY }" },
     description: "Find all function declarations",
+    fix: "/*FOUND:function*/function $NAME($$$PARAMS) { $$$BODY }",
   },
   {
     id: "find-arrow-functions",
     language: "typescript",
-    rule: { pattern: "const $NAME = ($$$PARAMS) => $BODY" },
-    description: "Find all arrow functions assigned to const",
+    rule: { pattern: "const $NAME = ($$$PARAMS) => { $$$BODY }" },
+    description: "Find all arrow functions with block body",
+    fix: "/*FOUND:arrow*/const $NAME = ($$$PARAMS) => { $$$BODY }",
   },
   {
     id: "find-classes",
     language: "typescript",
     rule: { pattern: "class $NAME { $$$BODY }" },
     description: "Find all class declarations",
+    fix: "/*FOUND:class*/class $NAME { $$$BODY }",
   },
   {
     id: "find-async-functions",
     language: "typescript",
     rule: { pattern: "async function $NAME($$$PARAMS) { $$$BODY }" },
     description: "Find all async functions",
+    fix: "/*FOUND:async*/async function $NAME($$$PARAMS) { $$$BODY }",
   },
   {
     id: "find-exports",
     language: "typescript",
     rule: { pattern: "export { $$$EXPORTS }" },
-    description: "Find all export statements",
+    description: "Find all named exports",
+    fix: "/*FOUND:export*/export { $$$EXPORTS }",
   },
 ]
 
@@ -115,7 +122,7 @@ const REPLACE_RULES = [
   {
     id: "console-to-logger",
     language: "typescript",
-    rule: { pattern: 'console.log($$$ARGS)' },
+    rule: { pattern: "console.log($$$ARGS)" },
     fix: "logger.debug($$$ARGS)",
     description: "Replace console.log with logger.debug",
   },
@@ -127,6 +134,12 @@ const REPLACE_RULES = [
     description: "Comment out debugger statements",
   },
 ]
+
+// Helper: Count marker occurrences
+function countMarkers(code, marker) {
+  const regex = new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")
+  return (code.match(regex) || []).length
+}
 
 // ============================================================================
 // MAIN PLAYGROUND
@@ -146,7 +159,9 @@ async function main() {
   } catch (err) {
     console.error(`✗ Failed to initialize: ${err.message}`)
     console.error()
-    console.error("To run this playground, you need tree-sitter parser WASM files.")
+    console.error(
+      "To run this playground, you need tree-sitter parser WASM files.",
+    )
     console.error("Download from: https://github.com/AstGrep/tree-sitter-wasm")
     console.error("Then set PARSER_DIR environment variable.")
     process.exit(1)
@@ -176,23 +191,19 @@ async function main() {
   console.log("─".repeat(60))
   console.log()
 
-  const lintResults = agWasm.findNodes(sourceCode, LINT_RULES)
-
   let totalIssues = 0
   for (const rule of LINT_RULES) {
-    const matches = lintResults[rule.id] || []
-    if (matches.length > 0) {
-      totalIssues += matches.length
+    // Use fixErrors to detect matches by adding markers
+    const markedCode = agWasm.fixErrors(sourceCode, [rule])
+    const marker = `/*LINT:${rule.id.replace("no-", "")}*/`
+    const count = countMarkers(markedCode, marker)
+
+    if (count > 0) {
+      totalIssues += count
       const icon = rule.severity === "error" ? "❌" : "⚠️"
-      console.log(`${icon} ${rule.id} (${matches.length} issue${matches.length > 1 ? "s" : ""})`)
+      console.log(`${icon} ${rule.id} (${count} issue${count > 1 ? "s" : ""})`)
       console.log(`   ${rule.message}`)
-      for (const match of matches.slice(0, 3)) {
-        const line = match.range?.start?.line + 1 || "?"
-        console.log(`   └─ Line ${line}: ${match.text.trim().slice(0, 50)}`)
-      }
-      if (matches.length > 3) {
-        console.log(`   └─ ... and ${matches.length - 3} more`)
-      }
+      console.log(`   Pattern: ${rule.rule.pattern}`)
       console.log()
     }
   }
@@ -212,18 +223,16 @@ async function main() {
   console.log("─".repeat(60))
   console.log()
 
-  const searchResults = agWasm.findNodes(sourceCode, SEARCH_PATTERNS)
-
   for (const pattern of SEARCH_PATTERNS) {
-    const matches = searchResults[pattern.id] || []
+    // Use fixErrors to detect matches by adding markers
+    const markedCode = agWasm.fixErrors(sourceCode, [pattern])
+    const markerId = pattern.id.replace("find-", "")
+    const marker = `/*FOUND:${markerId}*/`
+    const count = countMarkers(markedCode, marker)
+
     console.log(`🔍 ${pattern.description}`)
     console.log(`   Pattern: ${pattern.rule.pattern}`)
-    console.log(`   Found: ${matches.length} match(es)`)
-    for (const match of matches.slice(0, 2)) {
-      const line = match.range?.start?.line + 1 || "?"
-      const preview = match.text.trim().split("\n")[0].slice(0, 50)
-      console.log(`   └─ Line ${line}: ${preview}...`)
-    }
+    console.log(`   Found: ${count} match(es)`)
     console.log()
   }
 
@@ -256,15 +265,13 @@ async function main() {
   console.log("─".repeat(60))
   console.log()
 
-  const lines = modifiedCode.split("\n").slice(0, 30)
-  lines.forEach((line, i) => {
+  const originalLines = sourceCode.split("\n")
+  const modifiedLines = modifiedCode.split("\n")
+
+  modifiedLines.slice(0, 30).forEach((line, i) => {
     const lineNum = String(i + 1).padStart(3, " ")
-    // Highlight changed lines
-    if (line.includes("const") && sourceCode.split("\n")[i]?.includes("var")) {
-      console.log(`${lineNum} | ${line}  ← changed`)
-    } else if (line.includes("logger.debug")) {
-      console.log(`${lineNum} | ${line}  ← changed`)
-    } else if (line.includes("// debugger removed")) {
+    const originalLine = originalLines[i] || ""
+    if (line !== originalLine) {
       console.log(`${lineNum} | ${line}  ← changed`)
     } else {
       console.log(`${lineNum} | ${line}`)
