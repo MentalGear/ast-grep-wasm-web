@@ -1,4 +1,5 @@
 [package]
+# TODO: Change name
 name = "ag-wasm"
 version = "0.0.1"
 authors = [ "Lo <l709937065@gmail.com>" ]
