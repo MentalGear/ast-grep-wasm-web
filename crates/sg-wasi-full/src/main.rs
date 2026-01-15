@@ -37,6 +37,8 @@ fn parse_args() -> Args {
     let argv: Vec<String> = env::args().skip(1).collect();
 
     let mut i = 0;
+    let mut positional_args: Vec<String> = Vec::new();
+
     while i < argv.len() {
         match argv[i].as_str() {
             "-h" | "--help" => {
@@ -84,11 +86,15 @@ fn parse_args() -> Args {
                 i += 1;
             }
             "scan" | "run" | "parse" | "version" => {
-                args.command = Some(argv[i].clone());
+                if args.command.is_none() {
+                    args.command = Some(argv[i].clone());
+                } else {
+                    positional_args.push(argv[i].clone());
+                }
                 i += 1;
             }
             s if !s.starts_with('-') => {
-                args.paths.push(argv[i].clone());
+                positional_args.push(argv[i].clone());
                 i += 1;
             }
             _ => {
@@ -97,6 +103,25 @@ fn parse_args() -> Args {
             }
         }
     }
+
+    // Handle shorthand syntax: sg 'pattern' [path...]
+    // If no pattern is set and first positional looks like a pattern (contains $ or special chars),
+    // treat it as a pattern
+    if args.pattern.is_none() && !positional_args.is_empty() {
+        let first = &positional_args[0];
+        // Heuristic: if it contains $ (metavar), or parens/braces, or doesn't exist as path, it's a pattern
+        let looks_like_pattern = first.contains('$')
+            || first.contains('(')
+            || first.contains('{')
+            || (!Path::new(first).exists() && !first.starts_with('.') && !first.starts_with('/'));
+
+        if looks_like_pattern {
+            args.pattern = Some(positional_args.remove(0));
+        }
+    }
+
+    // Remaining positional args are paths
+    args.paths = positional_args;
 
     if args.command.is_none() {
         if args.config.is_some() {
@@ -118,7 +143,8 @@ fn print_help() {
 ast-grep WASI CLI (full AST support)
 
 USAGE:
-  sg <COMMAND> [OPTIONS] [PATH...]
+  sg <PATTERN> [PATH...]                 # shorthand for pattern search
+  sg <COMMAND> [OPTIONS] [PATH...]       # full command syntax
 
 COMMANDS:
   scan        Scan files using rules from a YAML file
@@ -137,9 +163,10 @@ OPTIONS:
   -h, --help                  Show this help
 
 EXAMPLES:
-  sg run -p 'console.log($$$ARGS)' -l typescript ./src
-  sg run -p 'var $X = $Y' -r 'let $X = $Y' -l javascript -U ./src
-  sg scan -c rules.yml ./src
+  sg 'console.log($$$ARGS)' ./src                          # shorthand
+  sg run -p 'console.log($$$ARGS)' -l typescript ./src     # explicit
+  sg 'var $X = $Y' -r 'let $X = $Y' -U ./src               # rewrite shorthand
+  sg scan -c rules.yml ./src                               # scan with rules
 "#);
 }
 
