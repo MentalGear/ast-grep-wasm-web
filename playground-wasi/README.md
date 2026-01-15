@@ -22,12 +22,53 @@ This playground demonstrates how to use the ast-grep WASI CLI with wasmer/wasmti
 
 ```bash
 # Run from this directory (playground-wasi)
-wasmer run --dir=. ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
-  'console.log($$$ARGS)' ./examples
+wasmer run --dir=/ ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
+  'console.log($$$ARGS)' /path/to/your/code
 
 # Or use the explicit syntax
-wasmer run --dir=. ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
-  run -p 'console.log($$$ARGS)' -l javascript ./examples
+wasmer run --dir=/ ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
+  run -p 'console.log($$$ARGS)' -l javascript /path/to/your/code
+```
+
+## CLI Installation
+
+### Option 1: Wrapper Script (Recommended)
+
+```bash
+# Create wrapper in /usr/local/bin (requires sudo)
+sudo tee /usr/local/bin/ast-grep > /dev/null << 'EOF'
+#!/bin/bash
+wasmer run --dir=/ /path/to/sg.wasm -- "$@"
+EOF
+sudo chmod +x /usr/local/bin/ast-grep
+
+# Or without sudo, use ~/.local/bin
+mkdir -p ~/.local/bin
+cat > ~/.local/bin/ast-grep << 'EOF'
+#!/bin/bash
+wasmer run --dir=/ /path/to/sg.wasm -- "$@"
+EOF
+chmod +x ~/.local/bin/ast-grep
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Option 2: Shell Alias
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias ast-grep='wasmer run --dir=/ /path/to/sg.wasm --'
+
+# Then reload
+source ~/.bashrc
+```
+
+### Usage After Installation
+
+```bash
+ast-grep 'console.log($$$ARGS)' ./src
+ast-grep scan -c rules.yml ./src
+ast-grep 'var $X = $Y' -r 'let $X = $Y' -U ./src
 ```
 
 ## Usage Examples
@@ -189,6 +230,6 @@ wasi.start(instance)
 ## Tips
 
 1. **Quoting patterns**: Always quote patterns containing `$` to prevent shell expansion
-2. **Directory access**: Use `--dir=.` to grant WASM access to current directory (or `--dir=/` for full filesystem)
+2. **Directory access**: Use `--dir=/` for full filesystem access (recommended), or `--dir=.` for current directory only
 3. **Language detection**: The CLI auto-detects language from file extensions
 4. **Performance**: The WASM binary includes all tree-sitter grammars (~37MB)

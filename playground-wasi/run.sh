@@ -45,10 +45,10 @@ echo -e "${BLUE}=== ast-grep WASI Playground ===${NC}"
 echo -e "Supported languages: JavaScript, TypeScript, HTML, CSS, JSON, YAML"
 echo ""
 
-# Function to run sg command
+# Function to run sg command (--dir=/ grants full filesystem access)
 run_sg() {
     echo -e "${GREEN}> sg $@${NC}"
-    wasmer run --dir="$SCRIPT_DIR" "$WASM_FILE" -- "$@"
+    wasmer run --dir=/ "$WASM_FILE" -- "$@"
     echo ""
 }
 
@@ -69,9 +69,9 @@ echo -e "${BLUE}5. Scan with YAML rules:${NC}"
 run_sg scan -c "$SCRIPT_DIR/rules.yml" "$SCRIPT_DIR/examples"
 
 echo -e "${BLUE}6. Parse and show AST of sample.ts:${NC}"
-wasmer run --dir="$SCRIPT_DIR" "$WASM_FILE" -- parse "$SCRIPT_DIR/examples/sample.ts" 2>&1 | head -30
+wasmer run --dir=/ "$WASM_FILE" -- parse "$SCRIPT_DIR/examples/sample.ts" 2>&1 | head -30
 echo "..."
 echo ""
 
 echo -e "${GREEN}Done! Try your own patterns:${NC}"
-echo "  wasmer run --dir=. $WASM_FILE -- 'YOUR_PATTERN' ./examples"
+echo "  wasmer run --dir=/ $WASM_FILE -- 'YOUR_PATTERN' /path/to/code"

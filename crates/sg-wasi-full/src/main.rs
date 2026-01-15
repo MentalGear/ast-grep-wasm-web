@@ -4,7 +4,7 @@
 //! compiled to WASI for execution in wasmer/wasmtime.
 //!
 //! Build: cargo build --target wasm32-wasip1 --release -p sg-wasi-full
-//! Run: wasmer run --dir=. sg.wasm -- 'console.log($$$)' ./src
+//! Run: wasmer run --dir=/ sg.wasm -- 'console.log($$$)' /path/to/src
 
 use std::fs;
 use std::path::Path;
