@@ -1,0 +1,24 @@
+# Sample ast-grep rules file
+rules:
+  - id: no-var
+    language: typescript
+    rule:
+      pattern: var $NAME = $VALUE
+    message: Use 'const' or 'let' instead of 'var'
+    severity: error
+    fix: const $NAME = $VALUE
+
+  - id: no-console-log
+    language: typescript
+    rule:
+      pattern: console.log($$$ARGS)
+    message: Remove console.log statements in production
+    severity: warning
+
+  - id: no-debugger
+    language: typescript
+    rule:
+      pattern: debugger
+    message: Remove debugger statements
+    severity: error
+    fix: "// debugger removed"

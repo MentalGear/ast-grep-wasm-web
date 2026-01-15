@@ -1,0 +1,235 @@
+# ast-grep WASI Playground
+
+This playground demonstrates how to use the ast-grep WASI CLI with wasmer/wasmtime.
+
+## Prerequisites
+
+1. **Build the WASI binary** (if not already built):
+
+   ```bash
+   cd ../crates/sg-wasi-full
+   ./download-wasi-sdk.sh  # Install WASI SDK (first time only)
+   cargo build --target wasm32-wasip1 --release
+   ```
+
+2. **Install wasmer** (or wasmtime):
+   ```bash
+   curl https://get.wasmer.io -sSfL | sh
+   source ~/.wasmer/wasmer.sh
+   ```
+
+## Quick Start
+
+```bash
+# Run from this directory (playground-wasi)
+wasmer run --dir=/ ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
+  'console.log($$$ARGS)' /path/to/your/code
+
+# Or use the explicit syntax
+wasmer run --dir=/ ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
+  run -p 'console.log($$$ARGS)' -l javascript /path/to/your/code
+```
+
+## CLI Installation
+
+### Option 1: Wrapper Script (Recommended)
+
+```bash
+# Create wrapper in /usr/local/bin (requires sudo)
+sudo tee /usr/local/bin/ast-grep > /dev/null << 'EOF'
+#!/bin/bash
+wasmer run --dir=/ /path/to/sg.wasm -- "$@"
+EOF
+sudo chmod +x /usr/local/bin/ast-grep
+
+# Or without sudo, use ~/.local/bin
+mkdir -p ~/.local/bin
+cat > ~/.local/bin/ast-grep << 'EOF'
+#!/bin/bash
+wasmer run --dir=/ /path/to/sg.wasm -- "$@"
+EOF
+chmod +x ~/.local/bin/ast-grep
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Option 2: Shell Alias
+
+```bash
+# Add to ~/.bashrc or ~/.zshrc
+alias ast-grep='wasmer run --dir=/ /path/to/sg.wasm --'
+
+# Then reload
+source ~/.bashrc
+```
+
+### Usage After Installation
+
+```bash
+ast-grep 'console.log($$$ARGS)' ./src
+ast-grep scan -c rules.yml ./src
+ast-grep 'var $X = $Y' -r 'let $X = $Y' -U ./src
+```
+
+## Usage Examples
+
+### Pattern Search (Shorthand)
+
+```bash
+# Find all console.log calls
+sg 'console.log($$$ARGS)' ./examples
+
+# Find all const declarations
+sg 'const $NAME = $VALUE' ./examples
+
+# Find all function declarations
+sg 'function $NAME($$$PARAMS) { $$$BODY }' ./examples
+```
+
+### Pattern Search with Explicit Options
+
+```bash
+# Search with explicit language
+sg run -p 'console.log($$$)' -l typescript ./examples
+
+# Search with debug output
+sg run -p 'const $X = $Y' --debug ./examples
+```
+
+### Search and Replace (Rewrite)
+
+```bash
+# Replace var with let (preview)
+sg 'var $X = $Y' -r 'let $X = $Y' ./examples
+
+# Replace var with let (apply changes)
+sg 'var $X = $Y' -r 'let $X = $Y' -U ./examples
+
+# Replace console.log with console.debug
+sg 'console.log($$$ARGS)' -r 'console.debug($$$ARGS)' -U ./examples
+```
+
+### Scan with YAML Rules
+
+```bash
+# Scan using rules file
+sg scan -c ./rules.yml ./examples
+
+# Auto-discover sgconfig.yml (searches up directory tree)
+sg scan ./examples
+
+# Output as JSON (includes ruleId, severity, message)
+sg scan --json ./examples
+```
+
+### Parse and Show AST
+
+```bash
+# Show AST structure of a file
+sg parse ./examples/sample.ts
+```
+
+### JSON Output
+
+```bash
+# Pattern search as JSON
+sg 'console.log($$$)' --json ./examples
+
+# Scan as JSON (includes ruleId, severity, message, fix)
+sg scan --json ./examples
+```
+
+JSON output format matches native ast-grep:
+
+```json
+{
+  "file": "/path/to/file.ts",
+  "range": {
+    "start": { "line": 4, "column": 0, "offset": 79 },
+    "end": { "line": 4, "column": 28, "offset": 107 }
+  },
+  "text": "console.log(\"Hello\")",
+  "ruleId": "no-console-log",
+  "severity": "warning",
+  "message": "Avoid console.log",
+  "fix": "// console.log($$$ARGS)",
+  "language": "typescript"
+}
+```
+
+## Severity Levels
+
+Rules can specify a severity level for categorization:
+
+```yaml
+- id: no-console-log
+  language: typescript
+  severity: warning # error | warning | info | hint
+  rule:
+    pattern: console.log($$$ARGS)
+  message: Avoid console.log in production
+```
+
+Severity levels appear in both terminal output (with colors) and JSON output.
+
+## Config Discovery
+
+The CLI automatically searches for `sgconfig.yml` or `sgconfig.yaml` when running `sg scan` without `-c`:
+
+```bash
+# Auto-discovers config by walking up directory tree
+sg scan ./src
+```
+
+## Metavariable Reference
+
+| Pattern  | Description                            |
+| -------- | -------------------------------------- |
+| `$VAR`   | Match single AST node                  |
+| `$$$VAR` | Match multiple AST nodes (variadic)    |
+| `$_`     | Anonymous single match (don't capture) |
+| `$$$`    | Anonymous variadic match               |
+
+## Supported Languages
+
+The default build includes: **JavaScript, TypeScript, HTML, CSS, JSON, YAML**
+
+To add more languages, edit `crates/sg-wasi-full/Cargo.toml` and add the tree-sitter features you need:
+
+```toml
+ast-grep-language = { version = "0.40.5", default-features = false, features = [
+  "tree-sitter-javascript",
+  "tree-sitter-typescript",
+  "tree-sitter-python",  # Add this for Python
+  "tree-sitter-rust",    # Add this for Rust
+  # ... see ast-grep-language docs for full list
+] }
+```
+
+Then rebuild: `cargo build --target wasm32-wasip1 --release`
+
+## WebContainer Usage
+
+For WebContainer environments (like StackBlitz), use wasmer to execute:
+
+```javascript
+import { init, WASI } from "@aspect-build/wasmer-js"
+
+await init()
+const wasi = new WASI({
+  args: ["sg", "console.log($$$)", "/app"],
+  env: {},
+  preopens: { "/app": "/workspace" },
+})
+
+const wasm = await WebAssembly.compile(wasmBytes)
+const instance = await WebAssembly.instantiate(wasm, wasi.getImports(wasm))
+wasi.start(instance)
+```
+
+## Tips
+
+1. **Quoting patterns**: Always quote patterns containing `$` to prevent shell expansion
+2. **Directory access**: Use `--dir=/` for full filesystem access (recommended), or `--dir=.` for current directory only
+3. **Language detection**: The CLI auto-detects language from file extensions
+4. **Performance**: The WASM binary includes all tree-sitter grammars (~37MB)

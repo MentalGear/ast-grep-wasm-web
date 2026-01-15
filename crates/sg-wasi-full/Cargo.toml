@@ -1,0 +1,33 @@
+[package]
+# todo: change name
+name = "sg-wasi-full"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "ast-grep WASI CLI with full tree-sitter AST support"
+
+[[bin]]
+name = "sg"
+path = "src/main.rs"
+
+[dependencies]
+ast-grep-core = { version = "0.40.5" }
+ast-grep-config = { version = "0.40.5" }
+# chose which AST Grep languages are supported:
+ast-grep-language = { version = "0.40.5", default-features = false, features = [
+  "tree-sitter-css",
+  "tree-sitter-html",
+  "tree-sitter-javascript",
+  "tree-sitter-typescript",
+  "tree-sitter-json",
+  "tree-sitter-yaml",
+] }
+clap = { version = "4.5", features = ["derive"] }
+serde = { version = "1.0", features = [ "derive" ] }
+serde_yaml = "0.9"
+serde_json = "1.0"
+
+[profile.release]
+panic = "abort"
+opt-level = "s"
+lto = true

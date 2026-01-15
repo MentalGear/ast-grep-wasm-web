@@ -1,0 +1,44 @@
+# Example ast-grep rules for the WASI playground
+# Run with: sg scan -c rules.yml ./examples
+#
+# Supported languages (configured in Cargo.toml):
+# CSS, HTML, JavaScript, TypeScript, JSON, YAML
+
+- id: no-console-log
+  language: typescript
+  severity: warning
+  rule:
+    pattern: console.log($$$ARGS)
+  message: Avoid using console.log in production code
+  fix: // console.log($$$ARGS)
+
+- id: prefer-const-js
+  language: javascript
+  severity: error
+  rule:
+    pattern: var $NAME = $VALUE
+  message: "Use 'const' or 'let' instead of 'var'"
+  fix: const $NAME = $VALUE
+
+- id: prefer-const-ts
+  language: typescript
+  severity: error
+  rule:
+    pattern: var $NAME = $VALUE
+  message: "Use 'const' or 'let' instead of 'var'"
+  fix: let $NAME = $VALUE
+
+- id: no-empty-catch
+  language: typescript
+  severity: error
+  rule:
+    pattern: |
+      try { $$$TRY } catch ($ERR) { }
+  message: Empty catch block - handle the error or add a comment
+
+- id: prefer-template-literals
+  language: javascript
+  severity: hint
+  rule:
+    pattern: $A + $B
+  message: Consider using template literals for string concatenation

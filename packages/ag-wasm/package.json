@@ -2,7 +2,7 @@
   "name": "ag-wasm",
   "type": "module",
   "version": "0.3.0",
-  "description": "ag-wasm",
+  "description": "ast-grep WASM - AST-based code searching, linting, and rewriting",
   "author": "LoTwT <l709937065@gmail.com>",
   "license": "MIT",
   "homepage": "https://github.com/LoTwT/ag-wasm#readme",
@@ -25,7 +25,14 @@
   ],
   "exports": {
     ".": "./dist/web/index.js",
-    "./node": "./dist/node/index.js",
+    "./node": {
+      "types": "./dist/node/index.d.ts",
+      "require": "./dist/node/index.cjs"
+    },
+    "./node-fs": {
+      "types": "./dist/node-fs/index.d.ts",
+      "import": "./dist/node-fs/index.js"
+    },
     "./bundler": "./dist/bundler/index.js",
     "./*": [
       "./*",
@@ -43,10 +50,17 @@
       ]
     }
   },
+  "bin": {
+    "sg": "./dist/cli/cli.js",
+    "ast-grep": "./dist/cli/cli.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "parsers"
   ],
   "dependencies": {
-    "web-tree-sitter-sg": "0.22.2"
+    "web-tree-sitter": "^0.22.6",
+    "web-tree-sitter-sg": "0.22.2",
+    "yaml": "^2.7.1"
   }
 }

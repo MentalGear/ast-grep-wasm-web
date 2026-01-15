@@ -1,0 +1,8 @@
+[target.wasm32-wasip1]
+linker = "/opt/wasi-sdk/bin/clang"
+rustflags = ["-C", "link-arg=--sysroot=/opt/wasi-sdk/share/wasi-sysroot"]
+
+[env]
+CC_wasm32_wasip1 = "/opt/wasi-sdk/bin/clang"
+AR_wasm32_wasip1 = "/opt/wasi-sdk/bin/llvm-ar"
+CFLAGS_wasm32_wasip1 = "--sysroot=/opt/wasi-sdk/share/wasi-sysroot"
