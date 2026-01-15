@@ -21,16 +21,13 @@ This playground demonstrates how to use the ast-grep WASI CLI with wasmer/wasmti
 ## Quick Start
 
 ```bash
-# Run from repository root
-cd ..
-
-# Search for console.log calls
-wasmer run --mapdir /app:. crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
-  'console.log($$$ARGS)' /app/playground-wasi/examples
+# Run from this directory (playground-wasi)
+wasmer run --dir=. ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
+  'console.log($$$ARGS)' ./examples
 
 # Or use the explicit syntax
-wasmer run --mapdir /app:. crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
-  run -p 'console.log($$$ARGS)' -l javascript /app/playground-wasi/examples
+wasmer run --dir=. ../crates/sg-wasi-full/target/wasm32-wasip1/release/sg.wasm -- \
+  run -p 'console.log($$$ARGS)' -l javascript ./examples
 ```
 
 ## Usage Examples
@@ -192,6 +189,6 @@ wasi.start(instance)
 ## Tips
 
 1. **Quoting patterns**: Always quote patterns containing `$` to prevent shell expansion
-2. **Path mapping**: Use `--mapdir` to map host directories into the WASM sandbox
+2. **Directory access**: Use `--dir=.` to grant WASM access to current directory (or `--dir=/` for full filesystem)
 3. **Language detection**: The CLI auto-detects language from file extensions
 4. **Performance**: The WASM binary includes all tree-sitter grammars (~37MB)

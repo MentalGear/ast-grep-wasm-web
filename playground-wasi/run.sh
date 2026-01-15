@@ -48,30 +48,30 @@ echo ""
 # Function to run sg command
 run_sg() {
     echo -e "${GREEN}> sg $@${NC}"
-    wasmer run --mapdir /app:"$SCRIPT_DIR" "$WASM_FILE" -- "$@"
+    wasmer run --dir="$SCRIPT_DIR" "$WASM_FILE" -- "$@"
     echo ""
 }
 
 # Demo commands
 echo -e "${BLUE}1. Find all console.log calls:${NC}"
-run_sg 'console.log($$$ARGS)' /app/examples
+run_sg 'console.log($$$ARGS)' "$SCRIPT_DIR/examples"
 
 echo -e "${BLUE}2. Find all const declarations:${NC}"
-run_sg 'const $NAME = $VALUE' /app/examples
+run_sg 'const $NAME = $VALUE' "$SCRIPT_DIR/examples"
 
 echo -e "${BLUE}3. Find all var declarations (to refactor):${NC}"
-run_sg 'var $NAME = $VALUE' /app/examples
+run_sg 'var $NAME = $VALUE' "$SCRIPT_DIR/examples"
 
 echo -e "${BLUE}4. Find all async functions:${NC}"
-run_sg 'async function $NAME($$$PARAMS) { $$$BODY }' /app/examples
+run_sg 'async function $NAME($$$PARAMS) { $$$BODY }' "$SCRIPT_DIR/examples"
 
 echo -e "${BLUE}5. Scan with YAML rules:${NC}"
-run_sg scan -c /app/rules.yml /app/examples
+run_sg scan -c "$SCRIPT_DIR/rules.yml" "$SCRIPT_DIR/examples"
 
 echo -e "${BLUE}6. Parse and show AST of sample.ts:${NC}"
-wasmer run --mapdir /app:"$SCRIPT_DIR" "$WASM_FILE" -- parse /app/examples/sample.ts 2>&1 | head -30
+wasmer run --dir="$SCRIPT_DIR" "$WASM_FILE" -- parse "$SCRIPT_DIR/examples/sample.ts" 2>&1 | head -30
 echo "..."
 echo ""
 
 echo -e "${GREEN}Done! Try your own patterns:${NC}"
-echo "  wasmer run --mapdir /app:$SCRIPT_DIR $WASM_FILE -- 'YOUR_PATTERN' /app/examples"
+echo "  wasmer run --dir=. $WASM_FILE -- 'YOUR_PATTERN' ./examples"
