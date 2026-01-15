@@ -2,13 +2,13 @@
 name = "ag-wasm"
 version = "0.0.1"
 authors = [ "Lo <l709937065@gmail.com>" ]
-edition = "2018"
+edition = "2021"
 keywords = [
   "ast",
   "pattern",
   "codemod",
   "search",
-  "rewrite" 
+  "rewrite"
 ]
 license = "MIT"
 
@@ -18,10 +18,13 @@ crate-type = [
   "rlib"
 ]
 
-# WASI CLI binary (standalone, no wasm-bindgen dependencies)
+# WASI CLI binary (text-based, no tree-sitter)
 [[bin]]
 name = "sg-wasi"
 path = "src/bin/sg-wasi.rs"
+
+# Note: Full WASI CLI with tree-sitter is in crates/sg-wasi-full/
+# Build with: cd crates/sg-wasi-full && cargo build --target wasm32-wasip1 --release
 
 [features]
 default = []
@@ -38,9 +41,9 @@ serde = { version = "1.0", features = [ "derive" ] }
 console_error_panic_hook = { version = "0.1.7", optional = true }
 once_cell = "1.19.0"
 wee_alloc = { version = "0.4.5" }
-ast-grep-core = { version = "0.37.0" }
-ast-grep-config = { version = "0.37.0" }
-ast-grep-language = { version = "0.37.0", default-features = false }
+ast-grep-core = { version = "0.40.5" }
+ast-grep-config = { version = "0.40.5" }
+ast-grep-language = { version = "0.40.5", default-features = false }
 web-tree-sitter-sg = "0.25.3"
 tree-sitter = { version = "0.25.3", package = "tree-sitter-facade-sg" }
 serde-wasm-bindgen = "0.6"
