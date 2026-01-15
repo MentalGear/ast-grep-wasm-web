@@ -207,6 +207,27 @@ module.exports = require("../node/index.js");
     console.log("⚠️ No parsers found in playground-node/parsers")
   }
 
+  // Build and copy WASI CLI if target is available
+  console.log("\n📦 Building WASI CLI...\n")
+
+  try {
+    execSync(`cargo build --target wasm32-wasip1 --release --bin sg-wasi`, {
+      stdio: "inherit",
+      cwd: resolve(_dirname, ".."),
+    })
+
+    const wasiSrc = resolve(
+      _dirname,
+      "../target/wasm32-wasip1/release/sg-wasi.wasm",
+    )
+    const wasiDest = resolve(distPath, "wasi/sg-wasi.wasm")
+    await ensureDir(resolve(distPath, "wasi"))
+    await copy(wasiSrc, wasiDest)
+    console.log("✅ WASI CLI built and copied successfully")
+  } catch {
+    console.log("⚠️ WASI build skipped (target may not be installed)")
+  }
+
   console.log("\n📦 Finish Building...\n")
 }
 

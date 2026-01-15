@@ -15,8 +15,13 @@ license = "MIT"
 [lib]
 crate-type = [
   "cdylib",
-  "rlib" 
+  "rlib"
 ]
+
+# WASI CLI binary (standalone, no wasm-bindgen dependencies)
+[[bin]]
+name = "sg-wasi"
+path = "src/bin/sg-wasi.rs"
 
 [features]
 default = []
