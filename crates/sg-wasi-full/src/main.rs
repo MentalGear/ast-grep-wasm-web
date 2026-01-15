@@ -6,168 +6,116 @@
 //! Build: cargo build --target wasm32-wasip1 --release -p sg-wasi-full
 //! Run: wasmer run --mapdir /app:. sg.wasm -- scan -c /app/rules.yml /app/src
 
-use std::env;
 use std::fs;
 use std::path::Path;
 use std::process;
 
 use ast_grep_language::{SupportLang, LanguageExt};
+use clap::{Parser, Subcommand};
 use serde::Deserialize;
 
 // ============================================================================
-// CLI ARGUMENT PARSING
+// CLI DEFINITION WITH CLAP
 // ============================================================================
 
-#[derive(Debug, Default)]
-struct Args {
-    command: Option<String>,
+#[derive(Parser)]
+#[command(name = "sg")]
+#[command(author = "ast-grep")]
+#[command(version = "0.1.0")]
+#[command(about = "ast-grep WASI CLI - AST-based code search and replace", long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+
+    /// AST pattern to search for (shorthand for 'run -p')
+    #[arg(value_name = "PATTERN")]
     pattern: Option<String>,
-    rewrite: Option<String>,
-    language: Option<String>,
-    config: Option<String>,
+
+    /// Paths to search
+    #[arg(value_name = "PATH")]
     paths: Vec<String>,
-    json: bool,
-    debug: bool,
-    help: bool,
+
+    /// Replacement pattern for rewriting matches
+    #[arg(short, long, value_name = "REWRITE")]
+    rewrite: Option<String>,
+
+    /// Language to use (typescript, javascript, python, etc.)
+    #[arg(short, long, value_name = "LANG")]
+    lang: Option<String>,
+
+    /// Apply all fixes without prompting
+    #[arg(short = 'U', long)]
     update_all: bool,
+
+    /// Output results as JSON
+    #[arg(long)]
+    json: bool,
+
+    /// Enable debug output
+    #[arg(long)]
+    debug: bool,
 }
 
-fn parse_args() -> Args {
-    let mut args = Args::default();
-    let argv: Vec<String> = env::args().skip(1).collect();
+#[derive(Subcommand)]
+enum Commands {
+    /// Run a pattern search against files
+    Run {
+        /// AST pattern to search for
+        #[arg(short, long, required = true)]
+        pattern: String,
 
-    let mut i = 0;
-    let mut positional_args: Vec<String> = Vec::new();
+        /// Replacement pattern for rewriting matches
+        #[arg(short, long)]
+        rewrite: Option<String>,
 
-    while i < argv.len() {
-        match argv[i].as_str() {
-            "-h" | "--help" => {
-                args.help = true;
-                i += 1;
-            }
-            "-p" | "--pattern" => {
-                i += 1;
-                if i < argv.len() {
-                    args.pattern = Some(argv[i].clone());
-                }
-                i += 1;
-            }
-            "-r" | "--rewrite" | "--fix" => {
-                i += 1;
-                if i < argv.len() {
-                    args.rewrite = Some(argv[i].clone());
-                }
-                i += 1;
-            }
-            "-l" | "--lang" | "--language" => {
-                i += 1;
-                if i < argv.len() {
-                    args.language = Some(argv[i].clone());
-                }
-                i += 1;
-            }
-            "-c" | "--config" | "--rule" => {
-                i += 1;
-                if i < argv.len() {
-                    args.config = Some(argv[i].clone());
-                }
-                i += 1;
-            }
-            "--json" => {
-                args.json = true;
-                i += 1;
-            }
-            "--debug" => {
-                args.debug = true;
-                i += 1;
-            }
-            "-U" | "--update-all" => {
-                args.update_all = true;
-                i += 1;
-            }
-            "scan" | "run" | "parse" | "version" => {
-                if args.command.is_none() {
-                    args.command = Some(argv[i].clone());
-                } else {
-                    positional_args.push(argv[i].clone());
-                }
-                i += 1;
-            }
-            s if !s.starts_with('-') => {
-                positional_args.push(argv[i].clone());
-                i += 1;
-            }
-            _ => {
-                eprintln!("Unknown option: {}", argv[i]);
-                i += 1;
-            }
-        }
-    }
+        /// Language to use
+        #[arg(short, long)]
+        lang: Option<String>,
 
-    // Handle shorthand syntax: sg 'pattern' [path...]
-    // If no pattern is set and first positional looks like a pattern (contains $ or special chars),
-    // treat it as a pattern
-    if args.pattern.is_none() && !positional_args.is_empty() {
-        let first = &positional_args[0];
-        // Heuristic: if it contains $ (metavar), or parens/braces, or doesn't exist as path, it's a pattern
-        let looks_like_pattern = first.contains('$')
-            || first.contains('(')
-            || first.contains('{')
-            || (!Path::new(first).exists() && !first.starts_with('.') && !first.starts_with('/'));
+        /// Apply all fixes without prompting
+        #[arg(short = 'U', long)]
+        update_all: bool,
 
-        if looks_like_pattern {
-            args.pattern = Some(positional_args.remove(0));
-        }
-    }
+        /// Output results as JSON
+        #[arg(long)]
+        json: bool,
 
-    // Remaining positional args are paths
-    args.paths = positional_args;
+        /// Paths to search
+        #[arg(default_value = ".")]
+        paths: Vec<String>,
+    },
 
-    if args.command.is_none() {
-        if args.config.is_some() {
-            args.command = Some("scan".to_string());
-        } else if args.pattern.is_some() {
-            args.command = Some("run".to_string());
-        }
-    }
+    /// Scan files using rules from a YAML configuration
+    Scan {
+        /// Path to rules YAML file
+        #[arg(short, long, required = true)]
+        config: String,
 
-    if args.paths.is_empty() {
-        args.paths.push(".".to_string());
-    }
+        /// Apply all fixes without prompting
+        #[arg(short = 'U', long)]
+        update_all: bool,
 
-    args
-}
+        /// Output results as JSON
+        #[arg(long)]
+        json: bool,
 
-fn print_help() {
-    eprintln!(r#"
-ast-grep WASI CLI (full AST support)
+        /// Paths to scan
+        #[arg(default_value = ".")]
+        paths: Vec<String>,
+    },
 
-USAGE:
-  sg <PATTERN> [PATH...]                 # shorthand for pattern search
-  sg <COMMAND> [OPTIONS] [PATH...]       # full command syntax
+    /// Parse a file and display its AST
+    Parse {
+        /// File to parse
+        file: String,
 
-COMMANDS:
-  scan        Scan files using rules from a YAML file
-  run         Run a single pattern against files
-  parse       Parse and dump AST of a file
-  version     Show version
+        /// Language to use (auto-detected if not specified)
+        #[arg(short, long)]
+        lang: Option<String>,
+    },
 
-OPTIONS:
-  -p, --pattern <PATTERN>     AST pattern to search for
-  -r, --rewrite <REWRITE>     Replacement pattern (enables fix mode)
-  -l, --lang <LANGUAGE>       Language (typescript, javascript, python, etc.)
-  -c, --config <FILE>         Rules file (YAML)
-  -U, --update-all            Apply all fixes without prompting
-  --json                      Output as JSON
-  --debug                     Enable debug output
-  -h, --help                  Show this help
-
-EXAMPLES:
-  sg 'console.log($$$ARGS)' ./src                          # shorthand
-  sg run -p 'console.log($$$ARGS)' -l typescript ./src     # explicit
-  sg 'var $X = $Y' -r 'let $X = $Y' -U ./src               # rewrite shorthand
-  sg scan -c rules.yml ./src                               # scan with rules
-"#);
+    /// Show version information
+    Version,
 }
 
 // ============================================================================
@@ -307,20 +255,12 @@ fn load_rules(config_path: &str) -> Result<Vec<YamlRule>, String> {
 // COMMANDS
 // ============================================================================
 
-fn run_pattern(args: &Args) {
-    let pattern = match &args.pattern {
-        Some(p) => p,
-        None => {
-            eprintln!("Error: --pattern/-p required");
-            process::exit(1);
-        }
-    };
-
-    let specified_lang = args.language.as_ref().and_then(|l| parse_language(l));
+fn run_pattern(pattern: &str, rewrite: Option<&str>, lang: Option<&str>, update_all: bool, json: bool, paths: &[String]) {
+    let specified_lang = lang.and_then(parse_language);
     let mut total_matches = 0;
     let mut total_files = 0;
 
-    for path in &args.paths {
+    for path in paths {
         let files = collect_files(path, specified_lang);
 
         for file in files {
@@ -336,17 +276,17 @@ fn run_pattern(args: &Args) {
             };
 
             let grep = file_lang.ast_grep(&content);
-            let matches: Vec<_> = grep.root().find_all(pattern.as_str()).collect();
+            let matches: Vec<_> = grep.root().find_all(pattern).collect();
 
             if matches.is_empty() {
                 continue;
             }
 
-            if let Some(rewrite) = &args.rewrite {
-                if args.update_all {
+            if let Some(rewrite_pattern) = rewrite {
+                if update_all {
                     // Apply fixes using replace_by
                     let mut edits: Vec<(usize, usize, String)> = matches.iter().map(|m| {
-                        let edit = m.replace_by(rewrite.as_str());
+                        let edit = m.replace_by(rewrite_pattern);
                         let start = edit.position;
                         let end = edit.position + edit.deleted_length;
                         let replacement = String::from_utf8_lossy(&edit.inserted_text).to_string();
@@ -376,7 +316,14 @@ fn run_pattern(args: &Args) {
             total_matches += matches.len();
             total_files += 1;
 
-            if !args.json {
+            if json {
+                for m in &matches {
+                    let range = m.range();
+                    let line = byte_to_line(&content, range.start);
+                    println!(r#"{{"file":"{}","line":{},"text":"{}"}}"#,
+                        file, line, m.text().replace('"', "\\\"").replace('\n', "\\n"));
+                }
+            } else {
                 println!("\x1b[35m{}\x1b[0m", file);
                 for m in &matches {
                     let range = m.range();
@@ -389,23 +336,17 @@ fn run_pattern(args: &Args) {
         }
     }
 
-    println!();
-    if args.rewrite.is_some() && args.update_all {
-        println!("Fixed {} file(s)", total_files);
-    } else {
-        println!("Found {} match(es) in {} file(s)", total_matches, total_files);
+    if !json {
+        println!();
+        if rewrite.is_some() && update_all {
+            println!("Fixed {} file(s)", total_files);
+        } else {
+            println!("Found {} match(es) in {} file(s)", total_matches, total_files);
+        }
     }
 }
 
-fn run_scan(args: &Args) {
-    let config_path = match &args.config {
-        Some(c) => c,
-        None => {
-            eprintln!("Error: --config/-c required");
-            process::exit(1);
-        }
-    };
-
+fn run_scan(config_path: &str, update_all: bool, _json: bool, paths: &[String]) {
     let rules = match load_rules(config_path) {
         Ok(r) => r,
         Err(e) => {
@@ -416,7 +357,7 @@ fn run_scan(args: &Args) {
 
     let mut total_matches = 0;
 
-    for path in &args.paths {
+    for path in paths {
         let files = collect_files(path, None);
 
         for file in files {
@@ -463,7 +404,7 @@ fn run_scan(args: &Args) {
                 }
 
                 // Apply fix
-                if args.update_all {
+                if update_all {
                     if let Some(fix) = &rule.fix {
                         let mut edits: Vec<(usize, usize, String)> = matches.iter().map(|m| {
                             let edit = m.replace_by(fix.as_str());
@@ -495,15 +436,9 @@ fn run_scan(args: &Args) {
     println!("Total: {} match(es)", total_matches);
 }
 
-fn run_parse(args: &Args) {
-    if args.paths.is_empty() || args.paths[0] == "." {
-        eprintln!("Error: file path required");
-        process::exit(1);
-    }
-
-    let file = &args.paths[0];
-    let lang = args.language.as_ref()
-        .and_then(|l| parse_language(l))
+fn run_parse(file: &str, lang: Option<&str>) {
+    let lang = lang
+        .and_then(parse_language)
         .or_else(|| detect_language(file));
 
     let lang = match lang {
@@ -548,29 +483,36 @@ fn run_parse(args: &Args) {
 // ============================================================================
 
 fn main() {
-    let args = parse_args();
+    let cli = Cli::parse();
 
-    if args.help || args.command.is_none() {
-        print_help();
-        process::exit(if args.help { 0 } else { 1 });
-    }
-
-    if args.debug {
-        eprintln!("Args: {:?}", args);
-    }
-
-    match args.command.as_deref() {
-        Some("version") => println!("sg 0.1.0 (ast-grep WASI with full tree-sitter support)"),
-        Some("run") => run_pattern(&args),
-        Some("scan") => run_scan(&args),
-        Some("parse") => run_parse(&args),
-        Some(cmd) => {
-            eprintln!("Unknown command: {}", cmd);
-            process::exit(1);
+    match cli.command {
+        Some(Commands::Run { pattern, rewrite, lang, update_all, json, paths }) => {
+            run_pattern(&pattern, rewrite.as_deref(), lang.as_deref(), update_all, json, &paths);
+        }
+        Some(Commands::Scan { config, update_all, json, paths }) => {
+            run_scan(&config, update_all, json, &paths);
+        }
+        Some(Commands::Parse { file, lang }) => {
+            run_parse(&file, lang.as_deref());
+        }
+        Some(Commands::Version) => {
+            println!("sg 0.1.0 (ast-grep WASI with full tree-sitter support)");
         }
         None => {
-            print_help();
-            process::exit(1);
+            // Handle shorthand: sg 'pattern' [paths...]
+            if let Some(pattern) = cli.pattern {
+                let paths = if cli.paths.is_empty() {
+                    vec![".".to_string()]
+                } else {
+                    cli.paths
+                };
+                run_pattern(&pattern, cli.rewrite.as_deref(), cli.lang.as_deref(), cli.update_all, cli.json, &paths);
+            } else {
+                // No pattern provided, show help
+                eprintln!("Usage: sg <PATTERN> [PATH...] or sg <COMMAND>");
+                eprintln!("Try 'sg --help' for more information.");
+                process::exit(1);
+            }
         }
     }
 }
