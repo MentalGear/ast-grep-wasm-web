@@ -1,0 +1,15 @@
+/home/user/ast-grep-wasm-web/crates/sg-emscripten/target/debug/deps/regex-8af095c1ee7daff3.d: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/builders.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/bytes.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/error.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/find_byte.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/bytes.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/string.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/bytes.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/string.rs
+
+/home/user/ast-grep-wasm-web/crates/sg-emscripten/target/debug/deps/libregex-8af095c1ee7daff3.rmeta: /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/lib.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/builders.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/bytes.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/error.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/find_byte.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/bytes.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/string.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/mod.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/bytes.rs /root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/string.rs
+
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/lib.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/builders.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/bytes.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/error.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/find_byte.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/mod.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/bytes.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regex/string.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/mod.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/bytes.rs:
+/root/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/regex-1.12.2/src/regexset/string.rs:

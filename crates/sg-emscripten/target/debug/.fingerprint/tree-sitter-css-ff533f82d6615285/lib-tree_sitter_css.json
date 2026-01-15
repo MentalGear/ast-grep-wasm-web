@@ -1,0 +1,23 @@
+{
+  "rustc": 4826714390000139368,
+  "features": "[]",
+  "declared_features": "[]",
+  "target": 6440834861068166645,
+  "profile": 2241668132362809309,
+  "path": 5944600371412523629,
+  "deps": [
+    [8513184006975761917, "build_script_build", false, 7226744614948850981],
+    [17856558494553819539, "tree_sitter_language", false, 16577403642582311066]
+  ],
+  "local": [
+    {
+      "CheckDepInfo": {
+        "dep_info": "debug/.fingerprint/tree-sitter-css-ff533f82d6615285/dep-lib-tree_sitter_css",
+        "checksum": false
+      }
+    }
+  ],
+  "rustflags": [],
+  "config": 2069994364910194474,
+  "compile_kind": 0
+}
