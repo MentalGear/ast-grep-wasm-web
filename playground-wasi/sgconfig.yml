@@ -1,0 +1,6 @@
+# ast-grep configuration for WASI playground
+# This file enables config discovery with: sg scan ./examples
+
+ruleDirs:
+  - .
+# Inline rules can also go here under 'rules:' key

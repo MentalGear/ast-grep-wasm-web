@@ -5,6 +5,7 @@ This playground demonstrates how to use the ast-grep WASI CLI with wasmer/wasmti
 ## Prerequisites
 
 1. **Build the WASI binary** (if not already built):
+
    ```bash
    cd ../crates/sg-wasi-full
    ./download-wasi-sdk.sh  # Install WASI SDK (first time only)
@@ -75,6 +76,12 @@ sg 'console.log($$$ARGS)' -r 'console.debug($$$ARGS)' -U ./examples
 ```bash
 # Scan using rules file
 sg scan -c ./rules.yml ./examples
+
+# Auto-discover sgconfig.yml (searches up directory tree)
+sg scan ./examples
+
+# Output as JSON (includes ruleId, severity, message)
+sg scan --json ./examples
 ```
 
 ### Parse and Show AST
@@ -84,14 +91,66 @@ sg scan -c ./rules.yml ./examples
 sg parse ./examples/sample.ts
 ```
 
+### JSON Output
+
+```bash
+# Pattern search as JSON
+sg 'console.log($$$)' --json ./examples
+
+# Scan as JSON (includes ruleId, severity, message, fix)
+sg scan --json ./examples
+```
+
+JSON output format matches native ast-grep:
+
+```json
+{
+  "file": "/path/to/file.ts",
+  "range": {
+    "start": { "line": 4, "column": 0, "offset": 79 },
+    "end": { "line": 4, "column": 28, "offset": 107 }
+  },
+  "text": "console.log(\"Hello\")",
+  "ruleId": "no-console-log",
+  "severity": "warning",
+  "message": "Avoid console.log",
+  "fix": "// console.log($$$ARGS)",
+  "language": "typescript"
+}
+```
+
+## Severity Levels
+
+Rules can specify a severity level for categorization:
+
+```yaml
+- id: no-console-log
+  language: typescript
+  severity: warning # error | warning | info | hint
+  rule:
+    pattern: console.log($$$ARGS)
+  message: Avoid console.log in production
+```
+
+Severity levels appear in both terminal output (with colors) and JSON output.
+
+## Config Discovery
+
+The CLI automatically searches for `sgconfig.yml` or `sgconfig.yaml` when running `sg scan` without `-c`:
+
+```bash
+# Auto-discovers config by walking up directory tree
+sg scan ./src
+```
+
 ## Metavariable Reference
 
-| Pattern | Description |
-|---------|-------------|
-| `$VAR` | Match single AST node |
-| `$$$VAR` | Match multiple AST nodes (variadic) |
-| `$_` | Anonymous single match (don't capture) |
-| `$$$` | Anonymous variadic match |
+| Pattern  | Description                            |
+| -------- | -------------------------------------- |
+| `$VAR`   | Match single AST node                  |
+| `$$$VAR` | Match multiple AST nodes (variadic)    |
+| `$_`     | Anonymous single match (don't capture) |
+| `$$$`    | Anonymous variadic match               |
 
 ## Supported Languages
 
@@ -116,18 +175,18 @@ Then rebuild: `cargo build --target wasm32-wasip1 --release`
 For WebContainer environments (like StackBlitz), use wasmer to execute:
 
 ```javascript
-import { init, WASI } from "@aspect-build/wasmer-js";
+import { init, WASI } from "@aspect-build/wasmer-js"
 
-await init();
+await init()
 const wasi = new WASI({
   args: ["sg", "console.log($$$)", "/app"],
   env: {},
-  preopens: { "/app": "/workspace" }
-});
+  preopens: { "/app": "/workspace" },
+})
 
-const wasm = await WebAssembly.compile(wasmBytes);
-const instance = await WebAssembly.instantiate(wasm, wasi.getImports(wasm));
-wasi.start(instance);
+const wasm = await WebAssembly.compile(wasmBytes)
+const instance = await WebAssembly.instantiate(wasm, wasi.getImports(wasm))
+wasi.start(instance)
 ```
 
 ## Tips
