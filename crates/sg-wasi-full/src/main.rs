@@ -23,6 +23,7 @@ use serde::{Deserialize, Serialize};
 #[command(author = "ast-grep")]
 #[command(version = "0.1.0")]
 #[command(about = "ast-grep WASI CLI - AST-based code search and replace", long_about = None)]
+#[command(args_conflicts_with_subcommands = true)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
